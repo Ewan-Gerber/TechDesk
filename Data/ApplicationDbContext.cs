@@ -23,7 +23,7 @@ namespace TechDesk.Data
                 new Category { Id = 2, Name = "Hardware", Description = "Physical devices issues" },
                 new Category { Id = 3, Name = "Network", Description = "Connectivity and network issues" },
                 new Category { Id = 4, Name = "Access & Permissions", Description = "Login and access requests" },
-                new Category { Id = 4, Name = "Other", Description = "General or uncategorised issues" }
+                new Category { Id = 5, Name = "Other", Description = "General or uncategorised issues" }
             );
         }
     }
