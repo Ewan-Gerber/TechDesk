@@ -16,6 +16,13 @@ namespace TechDesk.Controllers
             _signInManager = signInManager;
         }
 
+        // GET: /Account/Register
+        [HttpGet]
+        public IActionResult Register()
+        {
+            return View();
+        }
+
         // POST: /Account/Register
         [HttpPost]
         [ValidateAntiForgeryToken]

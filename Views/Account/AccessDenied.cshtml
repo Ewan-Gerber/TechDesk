@@ -1,0 +1,75 @@
+﻿@{
+    ViewData["Title"] = "Access Denied";
+    Layout = null;
+}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>TechDesk – Access Denied</title>
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <style>
+        body {
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Segoe UI', sans-serif;
+        }
+
+        .card {
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 16px;
+            padding: 50px 40px;
+            text-align: center;
+            max-width: 420px;
+        }
+
+        .icon {
+            font-size: 64px;
+            margin-bottom: 20px;
+        }
+
+        h2 {
+            color: #ffffff;
+            font-weight: 700;
+            margin-bottom: 12px;
+        }
+
+        p {
+            color: rgba(255,255,255,0.5);
+            margin-bottom: 30px;
+        }
+
+        .btn-home {
+            background: linear-gradient(135deg, #e94560, #c62a47);
+            border: none;
+            border-radius: 8px;
+            color: white;
+            font-weight: 600;
+            padding: 12px 32px;
+            text-decoration: none;
+            display: inline-block;
+            transition: all 0.3s;
+        }
+
+            .btn-home:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 8px 25px rgba(233, 69, 96, 0.4);
+                color: white;
+            }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <div class="icon">🔒</div>
+        <h2>Access Denied</h2>
+        <p>You don't have permission to view this page.</p>
+        <a href="/" class="btn-home">Go Home</a>
+    </div>
+</body>
+</html>
