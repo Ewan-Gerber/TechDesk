@@ -1,8 +1,137 @@
-﻿@{
-    ViewData["Title"] = "Home Page";
+﻿@model TechDesk.ViewModels.DashboardViewModel
+
+@{
+    ViewData["Title"] = "Dashboard";
 }
 
-<div class="text-center">
-    <h1 class="display-4">Welcome</h1>
-    <p>Learn about <a href="https://learn.microsoft.com/aspnet/core">building Web apps with ASP.NET Core</a>.</p>
+<!-- Stat Cards Row -->
+<div class="row g-3 mb-4">
+    <div class="col-md-3">
+        <div class="stat-card">
+            <div class="d-flex justify-content-between align-items-start">
+                <div>
+                    <div class="stat-number">@Model.TotalTickets</div>
+                    <div class="stat-label">Total Tickets</div>
+                </div>
+                <div class="stat-icon" style="background: rgba(88,166,255,0.1); color: #58a6ff;">
+                    <i class="bi bi-ticket-perforated"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-3">
+        <div class="stat-card">
+            <div class="d-flex justify-content-between align-items-start">
+                <div>
+                    <div class="stat-number">@Model.OpenTickets</div>
+                    <div class="stat-label">Open</div>
+                </div>
+                <div class="stat-icon" style="background: rgba(56,139,253,0.1); color: #388bfd;">
+                    <i class="bi bi-circle"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-3">
+        <div class="stat-card">
+            <div class="d-flex justify-content-between align-items-start">
+                <div>
+                    <div class="stat-number">@Model.InProgressTickets</div>
+                    <div class="stat-label">In Progress</div>
+                </div>
+                <div class="stat-icon" style="background: rgba(210,153,34,0.1); color: #d29922;">
+                    <i class="bi bi-arrow-repeat"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-3">
+        <div class="stat-card">
+            <div class="d-flex justify-content-between align-items-start">
+                <div>
+                    <div class="stat-number">@Model.ResolvedTickets</div>
+                    <div class="stat-label">Resolved</div>
+                </div>
+                <div class="stat-icon" style="background: rgba(63,185,80,0.1); color: #3fb950;">
+                    <i class="bi bi-check-circle"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Recent Tickets Table -->
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <span><i class="bi bi-clock-history me-2"></i>Recent Tickets</span>
+        <a href="/Ticket/Create" class="btn btn-primary btn-sm">
+            <i class="bi bi-plus-lg me-1"></i> New Ticket
+        </a>
+    </div>
+
+    <div class="table-responsive">
+        @if (Model.RecentTickets.Any())
+        {
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Title</th>
+                        <th>Category</th>
+                        <th>Priority</th>
+                        <th>Status</th>
+                        <th>Created</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var ticket in Model.RecentTickets)
+                    {
+                        <tr>
+                            <td style="color: #8b949e;">
+                                #@ticket.Id
+                            </td>
+                            <td>@ticket.Title</td>
+                            <td>
+                                <span style="color: #8b949e;">
+                                    @ticket.Category?.Name
+                                </span>
+                            </td>
+                            <td>
+                                <span class="badge rounded-pill badge-@ticket.Priority.ToString().ToLower()">
+                                    @ticket.Priority
+                                </span>
+                            </td>
+                            <td>
+                                <span class="badge rounded-pill badge-@ticket.Status.ToString().ToLower()">
+                                    @ticket.Status
+                                </span>
+                            </td>
+                            <td style="color: #8b949e; font-size: 13px;">
+                                @ticket.CreatedAt.ToString("dd MMM yyyy")
+                            </td>
+                            <td>
+                                <a href="/Ticket/Details/@ticket.Id"
+                                   class="btn btn-sm"
+                                   style="background:#21262d; color:#e6edf3; border:1px solid #30363d; border-radius:6px;">
+                                    View
+                                </a>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+        else
+        {
+            <div class="text-center py-5">
+                <i class="bi bi-ticket-perforated" style="font-size: 48px; color: #30363d;"></i>
+                <p style="color: #8b949e; margin-top: 16px;">No tickets yet.</p>
+                <a href="/Ticket/Create" class="btn btn-primary btn-sm">Submit your first ticket</a>
+            </div>
+        }
+    </div>
 </div>

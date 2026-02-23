@@ -1,32 +1,59 @@
-using System.Diagnostics;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using TechDesk.Data;
 using TechDesk.Models;
+using TechDesk.ViewModels;
 
 namespace TechDesk.Controllers
 {
+    [Authorize]
     public class HomeController : Controller
     {
-        private readonly ILogger<HomeController> _logger;
+        private readonly ApplicationDbContext _context;
+        private readonly UserManager<ApplicationUser> _userManager;
 
-        public HomeController(ILogger<HomeController> logger)
+        public HomeController(ApplicationDbContext context, UserManager<ApplicationUser> userManager)
         {
-            _logger = logger;
+            _context = context;
+            _userManager = userManager;
         }
 
-        public IActionResult Index()
+        public async Task<IActionResult> Index()
         {
-            return View();
-        }
+            var currentuser = await _userManager.GetUserAsync(User);
+            var isAdmin = User.IsInRole("Admin");
 
-        public IActionResult Privacy()
-        {
-            return View();
-        }
+            IQueryable<Ticket> ticketsQuery;
 
-        [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
-        public IActionResult Error()
-        {
-            return View(new ErrorViewModel { RequestId = Activity.Current?.Id ?? HttpContext.TraceIdentifier });
+            if (isAdmin)
+            {
+                ticketsQuery = _context.Tickets
+                    .Include(t => t.User)
+                    .Include(t => t.Category);
+            }
+            else
+            {
+                ticketsQuery = _context.Tickets
+                    .Where(t => t.UserId == currentuser!.Id)
+                    .Include(t => t.User)
+                    .Include(t => t.Category);
+            }
+
+            var tickets = await ticketsQuery.ToListAsync();
+
+            var viewModel = new DashboardViewModel
+            {
+                TotalTickets = tickets.Count,
+                OpenTickets = tickets.Count(t => t.Status == TicketStatus.Open),
+                InProgressTickets = tickets.Count(t => t.Status == TicketStatus.InProgress),
+                ResolvedTickets = tickets.Count(t => t.Status == TicketStatus.Resolved),
+                ClosedTickets = tickets.Count(t => t.Status == TicketStatus.Closed),
+                RecentTickets = tickets.OrderByDescending(t => t.CreatedAt).Take(10).ToList()
+            };
+
+            return View(viewModel);
         }
     }
 }
