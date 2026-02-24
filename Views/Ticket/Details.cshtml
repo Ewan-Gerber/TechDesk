@@ -67,7 +67,6 @@
                     <p style="color:#8b949e; font-size:14px;">No comments yet.</p>
                 }
 
-                <!-- Add Comment Form - visible to everyone -->
                 @if (Model.Ticket.Status != TechDesk.Models.TicketStatus.Closed)
                 {
                     <form asp-action="AddComment" method="post" class="mt-3">
@@ -86,8 +85,10 @@
         </div>
     </div>
 
-    <!-- Right Column: Details & Actions -->
+    <!-- Right Column: Details, Timer and Actions -->
     <div class="col-lg-4">
+
+        <!-- Ticket Details Card -->
         <div class="card mb-3">
             <div class="card-header">
                 <i class="bi bi-info-circle me-2"></i>Details
@@ -133,31 +134,211 @@
             </div>
         </div>
 
-        <!-- Action Buttons -->
+        <!-- Time Tracking Card -->
+        <div class="card mb-3">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span><i class="bi bi-clock me-2"></i>Time Tracking</span>
+                @if (Model.Ticket.TimeEntries.Any())
+                {
+                    <span style="color:#3fb950; font-weight:700; font-size:14px;">
+                        Total: @Model.TotalTimeFormatted
+                    </span>
+                }
+            </div>
+            <div class="card-body p-3">
+
+                @* Live Timer - only for ticket owner *@
+                @if (Model.IsOwner && Model.Ticket.Status != TechDesk.Models.TicketStatus.Closed)
+                {
+                    <div style="background:#21262d; border:1px solid #30363d; border-radius:10px; padding:16px; margin-bottom:16px; text-align:center;">
+                        <div style="color:#8b949e; font-size:11px; text-transform:uppercase; letter-spacing:1px; margin-bottom:12px;">Live Timer</div>
+                        <div id="liveTimerDisplay"
+                             style="font-size:36px; font-weight:700; color:#e94560; font-family:monospace; margin-bottom:16px;">
+                            00:00:00
+                        </div>
+                        <div class="d-flex gap-2 justify-content-center">
+                            <button id="startTimerBtn" onclick="startTimer()"
+                                    class="btn btn-sm"
+                                    style="background:rgba(63,185,80,0.1); color:#3fb950; border:1px solid rgba(63,185,80,0.3); border-radius:8px; padding:8px 20px;">
+                                <i class="bi bi-play-fill me-1"></i> Start
+                            </button>
+                            <button id="stopTimerBtn" onclick="stopTimer()"
+                                    class="btn btn-sm" disabled
+                                    style="background:rgba(248,81,73,0.1); color:#f85149; border:1px solid rgba(248,81,73,0.3); border-radius:8px; padding:8px 20px;">
+                                <i class="bi bi-stop-fill me-1"></i> Stop
+                            </button>
+                        </div>
+                    </div>
+
+                    <form id="liveTimerForm" asp-action="SaveLiveTimer" method="post" style="display:none;">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="ticketId" value="@Model.Ticket.Id" />
+                        <input type="hidden" id="liveStartTime" name="startTime" />
+                        <input type="hidden" id="liveEndTime" name="endTime" />
+                        <input type="hidden" name="note" value="Live timer session" />
+                    </form>
+                }
+
+                @* Manual Time Entry Form *@
+                @if ((Model.IsOwner || Model.IsAdmin) &&
+                                Model.Ticket.Status != TechDesk.Models.TicketStatus.Closed)
+                {
+                    <div style="margin-bottom:16px;">
+                        <div style="color:#8b949e; font-size:11px; text-transform:uppercase; letter-spacing:1px; margin-bottom:10px;">Add Manual Entry</div>
+                        <form asp-action="AddTimeEntry" method="post">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="ticketId" value="@Model.Ticket.Id" />
+                            <div class="row g-2 mb-2">
+                                <div class="col-6">
+                                    <label style="color:#8b949e; font-size:11px;">Start Date</label>
+                                    <input type="date" name="startDate" class="form-control form-control-sm" />
+                                </div>
+                                <div class="col-6">
+                                    <label style="color:#8b949e; font-size:11px;">Start Time</label>
+                                    <input type="time" name="startTime" class="form-control form-control-sm" />
+                                </div>
+                            </div>
+                            <div class="row g-2 mb-2">
+                                <div class="col-6">
+                                    <label style="color:#8b949e; font-size:11px;">End Date</label>
+                                    <input type="date" name="endDate" class="form-control form-control-sm" />
+                                </div>
+                                <div class="col-6">
+                                    <label style="color:#8b949e; font-size:11px;">End Time</label>
+                                    <input type="time" name="endTime" class="form-control form-control-sm" />
+                                </div>
+                            </div>
+                            <div class="mb-2">
+                                <label style="color:#8b949e; font-size:11px;">Note (optional)</label>
+                                <input type="text" name="note" class="form-control form-control-sm"
+                                       placeholder="e.g. On site visit, Remote support..." />
+                            </div>
+                            <button type="submit" class="btn btn-primary btn-sm w-100">
+                                <i class="bi bi-plus-circle me-1"></i> Add Time Entry
+                            </button>
+                        </form>
+                    </div>
+                }
+
+                @* Time Entries List *@
+                @if (Model.Ticket.TimeEntries.Any())
+                {
+                    <div style="color:#8b949e; font-size:11px; text-transform:uppercase; letter-spacing:1px; margin-bottom:10px;">
+                        Recorded Entries
+                    </div>
+                    @foreach (var entry in Model.Ticket.TimeEntries.OrderByDescending(e => e.StartTime))
+                    {
+                        <div style="background:#21262d; border:1px solid #30363d; border-radius:8px; padding:12px; margin-bottom:8px;">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <div>
+                                    <div style="color:#e6edf3; font-weight:600; font-size:13px;">
+                                        @{
+                                            var h = entry.DurationMinutes / 60;
+                                            var m = entry.DurationMinutes % 60;
+                                            var duration = h > 0 ? $"{h}h {m}m" : $"{m}m";
+                                        }
+                                        <i class="bi bi-clock me-1" style="color:#e94560;"></i>
+                                        @duration
+                                        @if (!entry.isManualEntry)
+                                        {
+                                            <span style="background:rgba(88,166,255,0.1); color:#58a6ff; font-size:10px; padding:2px 6px; border-radius:4px; margin-left:6px;">LIVE</span>
+                                        }
+                                        else
+                                        {
+                                            <span style="background:rgba(210,153,34,0.1); color:#d29922; font-size:10px; padding:2px 6px; border-radius:4px; margin-left:6px;">MANUAL</span>
+                                        }
+                                    </div>
+                                    <div style="color:#8b949e; font-size:11px; margin-top:4px;">
+                                        @entry.StartTime.ToString("dd MMM yyyy HH:mm") → @entry.EndTime.ToString("HH:mm")
+                                    </div>
+                                    @if (!string.IsNullOrEmpty(entry.Note))
+                                    {
+                                        <div style="color:#8b949e; font-size:11px; margin-top:2px;">
+                                            <i class="bi bi-chat-left me-1"></i>@entry.Note
+                                        </div>
+                                    }
+                                    <div style="color:#8b949e; font-size:11px; margin-top:2px;">
+                                        <i class="bi bi-person me-1"></i>@entry.User?.FirstName @entry.User?.LastName
+                                    </div>
+                                </div>
+                                @if (Model.IsAdmin || entry.UserId == User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value)
+                                {
+                                    <form asp-action="DeleteTimeEntry" method="post">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="entryId" value="@entry.Id" />
+                                        <input type="hidden" name="ticketId" value="@Model.Ticket.Id" />
+                                        <button type="submit"
+                                                style="background:transparent; border:none; color:#8b949e; cursor:pointer; font-size:14px;"
+                                                title="Delete entry">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </form>
+                                }
+                            </div>
+                        </div>
+                    }
+                    <div style="background:rgba(63,185,80,0.05); border:1px solid rgba(63,185,80,0.2); border-radius:8px; padding:12px; text-align:center; margin-top:8px;">
+                        <span style="color:#8b949e; font-size:12px;">Total Time on Ticket: </span>
+                        <span style="color:#3fb950; font-weight:700; font-size:16px;">@Model.TotalTimeFormatted</span>
+                    </div>
+                }
+                else
+                {
+                    <p style="color:#8b949e; font-size:13px; text-align:center; margin:0;">
+                        No time entries yet.
+                    </p>
+                }
+            </div>
+        </div>
+
+        <!-- Actions Card -->
         <div class="card">
             <div class="card-header">
                 <i class="bi bi-lightning me-2"></i>Actions
             </div>
             <div class="card-body p-3 d-flex flex-column gap-2">
 
-                @if (Model.Ticket.Status != TechDesk.Models.TicketStatus.Closed)
+                @* User can mark as Completed if ticket is Open or In Progress *@
+                @if (Model.IsOwner &&
+                                (Model.Ticket.Status == TechDesk.Models.TicketStatus.Open ||
+                                Model.Ticket.Status == TechDesk.Models.TicketStatus.InProgress))
                 {
-                    @if (Model.IsOwner || Model.IsAdmin)
-                    {
-                        <form asp-action="Close" method="post">
-                            @Html.AntiForgeryToken()
-                            <input type="hidden" name="id" value="@Model.Ticket.Id" />
-                            <button type="submit" class="btn btn-sm w-100"
-                                    style="background:rgba(248,81,73,0.1); color:#f85149; border:1px solid rgba(248,81,73,0.3); border-radius:8px; padding:10px;">
-                                <i class="bi bi-x-circle me-2"></i>Close Ticket
-                            </button>
-                        </form>
-                    }
+                    <form asp-action="Complete" method="post">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="id" value="@Model.Ticket.Id" />
+                        <button type="submit" class="btn btn-sm w-100"
+                                style="background:rgba(63,185,80,0.1); color:#3fb950; border:1px solid rgba(63,185,80,0.3); border-radius:8px; padding:10px;">
+                            <i class="bi bi-check-circle me-2"></i>Mark as Completed
+                        </button>
+                    </form>
                 }
-                else
+
+                @* Only admins can fully close a ticket *@
+                @if (Model.IsAdmin &&
+                                Model.Ticket.Status != TechDesk.Models.TicketStatus.Closed)
+                {
+                    <form asp-action="Close" method="post">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="id" value="@Model.Ticket.Id" />
+                        <button type="submit" class="btn btn-sm w-100"
+                                style="background:rgba(248,81,73,0.1); color:#f85149; border:1px solid rgba(248,81,73,0.3); border-radius:8px; padding:10px;">
+                            <i class="bi bi-x-circle me-2"></i>Close Ticket
+                        </button>
+                    </form>
+                }
+
+                @if (Model.Ticket.Status == TechDesk.Models.TicketStatus.Closed)
                 {
                     <p style="color:#8b949e; font-size:13px; text-align:center; margin:0;">
                         This ticket is closed.
+                    </p>
+                }
+
+                @if (Model.Ticket.Status == TechDesk.Models.TicketStatus.Completed && !Model.IsAdmin)
+                {
+                    <p style="color:#3fb950; font-size:13px; text-align:center; margin:0;">
+                        <i class="bi bi-check-circle me-1"></i>
+                        Ticket completed. Waiting for admin to close.
                     </p>
                 }
 
@@ -168,5 +349,44 @@
                 </a>
             </div>
         </div>
+
     </div>
 </div>
+
+@section Scripts {
+    <script>
+        let timerInterval = null;
+        let startDateTime = null;
+
+        function startTimer() {
+            startDateTime = new Date();
+            document.getElementById('startTimerBtn').disabled = true;
+            document.getElementById('stopTimerBtn').disabled = false;
+
+            timerInterval = setInterval(function () {
+                const now = new Date();
+                const elapsed = now - startDateTime;
+
+                const hours = Math.floor(elapsed / (1000 * 60 * 60));
+                const minutes = Math.floor((elapsed % (1000 * 60 * 60)) / (1000 * 60));
+                const seconds = Math.floor((elapsed % (1000 * 60)) / 1000);
+
+                const h = String(hours).padStart(2, '0');
+                const m = String(minutes).padStart(2, '0');
+                const s = String(seconds).padStart(2, '0');
+
+                document.getElementById('liveTimerDisplay').innerHTML = `${h}:${m}:${s}`;
+            }, 1000);
+        }
+
+        function stopTimer() {
+            if (!timerInterval) return;
+            clearInterval(timerInterval);
+
+            const endDateTime = new Date();
+            document.getElementById('liveStartTime').value = startDateTime.toISOString();
+            document.getElementById('liveEndTime').value = endDateTime.toISOString();
+            document.getElementById('liveTimerForm').submit();
+        }
+    </script>
+}

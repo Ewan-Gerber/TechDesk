@@ -104,6 +104,8 @@ namespace TechDesk.Controllers
                 .Include(t => t.User)
                 .Include(t => t.Comments)
                     .ThenInclude(c => c.User)
+                .Include(t => t.TimeEntries)
+                    .ThenInclude(te => te.User)
                 .FirstOrDefaultAsync(t => t.Id == id);
 
             if (ticket == null)
@@ -123,29 +125,6 @@ namespace TechDesk.Controllers
             };
 
             return View(viewModel);
-        }
-
-        //Allowsusers to close their own tickets 
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Close(int id)
-        {
-            var currentUser = await _userManager.GetUserAsync(User);
-            var ticket = await _context.Tickets.FindAsync(id);
-
-            if (ticket == null)
-                return NotFound();
-
-            if (ticket.UserId != currentUser!.Id && !User.IsInRole("Admin"))
-                return Forbid();
-
-            ticket.Status = TicketStatus.Closed;
-            ticket.UpdatedAt = DateTime.Now;
-
-            await _context.SaveChangesAsync();
-
-            TempData["Success"] = "Ticket closed successfully!";
-            return RedirectToAction("MyTickets");
         }
 
         // Allows admins to add a comment to a ticket
@@ -180,6 +159,229 @@ namespace TechDesk.Controllers
             await _context.SaveChangesAsync();
 
             TempData["Success"] = "Comment added";
+            return RedirectToAction("Details", new { id = ticketId });
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Complete(int id)
+        {
+            var currentUser = await _userManager.GetUserAsync(User);
+            var ticket = await _context.Tickets.FindAsync(id);
+
+            if (ticket == null)
+                return NotFound();
+
+            // Only the ticket owner can mark as completed
+            if (ticket.UserId != currentUser!.Id && !User.IsInRole("Admin"))
+                return Forbid();
+
+            // Can only complete a ticket that is Open or in Progress
+            if (ticket.Status != TicketStatus.Open && ticket.Status != TicketStatus.InProgress)
+            {
+                ticket.Status = TicketStatus.Completed;
+                ticket.UpdatedAt = DateTime.Now;
+                await _context.SaveChangesAsync();
+                TempData["Success"] = "Ticket marked as completed!";
+            }
+
+            return RedirectToAction("Details", new { id });
+        }
+
+        // Allows admin to fully close a completed ticket
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Close(int id)
+        {
+            var currentUser = await _userManager.GetUserAsync(User);
+            var ticket = await _context.Tickets.FindAsync(id);
+
+            if (ticket == null)
+                return NotFound();
+
+            if (ticket.UserId != currentUser!.Id && !User.IsInRole("Admin"))
+                return Forbid();
+
+            ticket.Status = TicketStatus.Closed;
+            ticket.UpdatedAt = DateTime.Now;
+
+            await _context.SaveChangesAsync();
+
+            TempData["Success"] = "Ticket closed successfully!";
+            return RedirectToAction("MyTickets");
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Reopen(int id)
+        {
+            var currentUser = await _userManager.GetUserAsync(User);
+            var ticket = await _context.Tickets.FindAsync(id);
+
+            if (ticket == null)
+                return NotFound();
+
+            if (ticket.UserId != currentUser!.Id && !User.IsInRole("Admin"))
+                return Forbid();
+
+            ticket.Status = TicketStatus.Open;
+            ticket.UpdatedAt = DateTime.Now;
+
+            await _context.SaveChangesAsync();
+
+            TempData["Success"] = "Ticket reopened successfully!";
+            return RedirectToAction("MyTickets");
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> SetTimer(int ticketId, string startDate, string startTime, string endDate, string endTime)
+        {
+            var ticket = await _context.Tickets.FindAsync(ticketId);
+
+            if (ticket == null)
+                return NotFound();
+
+            //Combine the date and time strings into full DateTime values
+            if (DateTime.TryParse($"{startDate} {startTime}", out DateTime start) &&
+                DateTime.TryParse($"{endDate} {endTime}", out DateTime end))
+            {
+                if (end <= start)
+                {
+                    TempData["Error"] = "End time must be after start time.";
+                    return RedirectToAction("Details", new { id = ticketId });
+                }
+
+                
+                ticket.UpdatedAt = DateTime.Now;
+
+                await _context.SaveChangesAsync();
+                TempData["Success"] = "Timer set successfully!";
+            }
+            else
+            {
+                TempData["Error"] = "Invalid date or time format.";
+            }
+
+            return RedirectToAction("Details", new { id = ticketId });
+
+        }
+
+        // Saves a manual time entry
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> AddTimeEntry(int ticketId,
+            string startDate, string startTime,
+            string endDate, string endTime,
+            string? note)
+        {
+            var ticket = await _context.Tickets.FindAsync(ticketId);
+            if (ticket == null) return NotFound();
+
+            var currentUser = await _userManager.GetUserAsync(User);
+
+            // Only ticket owner or admin can add time entries
+            if (!User.IsInRole("Admin") && ticket.UserId != currentUser!.Id)
+                return Forbid();
+
+            if (DateTime.TryParse($"{startDate} {startTime}", out DateTime start) &&
+                DateTime.TryParse($"{endDate} {endTime}", out DateTime end))
+            {
+                if (end <= start)
+                {
+                    TempData["Error"] = "End time must be after start time.";
+                    return RedirectToAction("Details", new { id = ticketId });
+                }
+
+                // Calculate duration in minutes
+                var duration = (int)(end - start).TotalMinutes;
+
+                var entry = new TimeEntry
+                {
+                    TicketId = ticketId,
+                    StartTime = start,
+                    EndTime = end,
+                    DurationMinutes = duration,
+                    Note = note,
+                    isManualEntry = true,
+                    UserId = currentUser!.Id,
+                    CreatedAt = DateTime.Now
+                };
+
+                _context.TimeEntries.Add(entry);
+                ticket.UpdatedAt = DateTime.Now;
+                await _context.SaveChangesAsync();
+
+                TempData["Success"] = "Time entry added successfully!";
+            }
+            else
+            {
+                TempData["Error"] = "Invalid date or time format.";
+            }
+
+            return RedirectToAction("Details", new { id = ticketId });
+        }
+
+        // Saves a live timer entry when the tech presses Stop
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> SaveLiveTimer(int ticketId,
+            string startTime, string endTime, string? note)
+        {
+            var ticket = await _context.Tickets.FindAsync(ticketId);
+            if (ticket == null) return NotFound();
+
+            var currentUser = await _userManager.GetUserAsync(User);
+
+            // Only the ticket owner can use the live timer
+            if (ticket.UserId != currentUser!.Id)
+                return Forbid();
+
+            if (DateTime.TryParse(startTime, out DateTime start) &&
+                DateTime.TryParse(endTime, out DateTime end))
+            {
+                var duration = (int)(end - start).TotalMinutes;
+
+                var entry = new TimeEntry
+                {
+                    TicketId = ticketId,
+                    StartTime = start,
+                    EndTime = end,
+                    DurationMinutes = duration,
+                    Note = note,
+                    isManualEntry = false,
+                    UserId = currentUser!.Id,
+                    CreatedAt = DateTime.Now
+                };
+
+                _context.TimeEntries.Add(entry);
+                ticket.UpdatedAt = DateTime.Now;
+                await _context.SaveChangesAsync();
+
+                TempData["Success"] = "Time entry saved!";
+            }
+
+            return RedirectToAction("Details", new { id = ticketId });
+        }
+
+        // Deletes a time entry
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> DeleteTimeEntry(int entryId, int ticketId)
+        {
+            var entry = await _context.TimeEntries.FindAsync(entryId);
+            if (entry == null) return NotFound();
+
+            var currentUser = await _userManager.GetUserAsync(User);
+
+            // Only the person who created it or an admin can delete it
+            if (entry.UserId != currentUser!.Id && !User.IsInRole("Admin"))
+                return Forbid();
+
+            _context.TimeEntries.Remove(entry);
+            await _context.SaveChangesAsync();
+
+            TempData["Success"] = "Time entry deleted.";
             return RedirectToAction("Details", new { id = ticketId });
         }
 

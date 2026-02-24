@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using TechDesk.Data;
 
@@ -11,9 +12,11 @@ using TechDesk.Data;
 namespace TechDesk.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260224191530_AddTimerAndCompletedStatus")]
+    partial class AddTimerAndCompletedStatus
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -309,6 +312,12 @@ namespace TechDesk.Migrations
                     b.Property<int>("Status")
                         .HasColumnType("int");
 
+                    b.Property<DateTime?>("TimerEndDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("TimerStartDate")
+                        .HasColumnType("datetime2");
+
                     b.Property<string>("Title")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
@@ -356,47 +365,6 @@ namespace TechDesk.Migrations
                     b.HasIndex("UserId");
 
                     b.ToTable("TicketComments");
-                });
-
-            modelBuilder.Entity("TechDesk.Models.TimeEntry", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<int>("DurationMinutes")
-                        .HasColumnType("int");
-
-                    b.Property<DateTime>("EndTime")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("Note")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime>("StartTime")
-                        .HasColumnType("datetime2");
-
-                    b.Property<int>("TicketId")
-                        .HasColumnType("int");
-
-                    b.Property<string>("UserId")
-                        .HasColumnType("nvarchar(450)");
-
-                    b.Property<bool>("isManualEntry")
-                        .HasColumnType("bit");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("TicketId");
-
-                    b.HasIndex("UserId");
-
-                    b.ToTable("TimeEntries");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>
@@ -484,23 +452,6 @@ namespace TechDesk.Migrations
                     b.Navigation("User");
                 });
 
-            modelBuilder.Entity("TechDesk.Models.TimeEntry", b =>
-                {
-                    b.HasOne("TechDesk.Models.Ticket", "Ticket")
-                        .WithMany("TimeEntries")
-                        .HasForeignKey("TicketId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("TechDesk.Models.ApplicationUser", "User")
-                        .WithMany()
-                        .HasForeignKey("UserId");
-
-                    b.Navigation("Ticket");
-
-                    b.Navigation("User");
-                });
-
             modelBuilder.Entity("TechDesk.Models.ApplicationUser", b =>
                 {
                     b.Navigation("Tickets");
@@ -514,8 +465,6 @@ namespace TechDesk.Migrations
             modelBuilder.Entity("TechDesk.Models.Ticket", b =>
                 {
                     b.Navigation("Comments");
-
-                    b.Navigation("TimeEntries");
                 });
 #pragma warning restore 612, 618
         }

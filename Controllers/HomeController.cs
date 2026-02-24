@@ -48,7 +48,7 @@ namespace TechDesk.Controllers
                 TotalTickets = tickets.Count,
                 OpenTickets = tickets.Count(t => t.Status == TicketStatus.Open),
                 InProgressTickets = tickets.Count(t => t.Status == TicketStatus.InProgress),
-                ResolvedTickets = tickets.Count(t => t.Status == TicketStatus.Resolved),
+                CompletedTickets = tickets.Count(t => t.Status == TicketStatus.Completed),
                 ClosedTickets = tickets.Count(t => t.Status == TicketStatus.Closed),
                 RecentTickets = tickets.OrderByDescending(t => t.CreatedAt).Take(10).ToList()
             };

@@ -12,7 +12,7 @@
     {
         Open,
         InProgress,
-        Resolved,
+        Completed,
         Closed
     }
 
@@ -45,6 +45,8 @@
         public Category ? Category { get; set; }
 
         public ICollection<TicketComment> Comments { get; set; } = new List<TicketComment>();
+
+        public ICollection<TimeEntry> TimeEntries { get; set; } = new List<TimeEntry>();
 
     }
 }

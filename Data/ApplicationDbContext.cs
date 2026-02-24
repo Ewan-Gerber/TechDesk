@@ -12,6 +12,7 @@ namespace TechDesk.Data
         public DbSet<Ticket> Tickets { get; set; }
         public DbSet<TicketComment> TicketComments { get; set; }
         public DbSet<Category> Categories { get; set; }
+        public DbSet<TimeEntry> TimeEntries { get; set; }
 
         protected override void OnModelCreating(ModelBuilder builder)
         {
