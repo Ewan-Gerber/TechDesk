@@ -29,7 +29,7 @@
 
         //Auto set when ticket is created:
         public DateTime CreatedAt { get; set; } = DateTime.Now;
-        public DateTime UpdatedAt { get; set; }
+        public DateTime? UpdatedAt { get; set; }
 
         //Foreign Key - links this ticket to a User
         // ? is there so it can be null

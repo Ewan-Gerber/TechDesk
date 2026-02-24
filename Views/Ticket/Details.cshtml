@@ -1,0 +1,172 @@
+﻿@model TechDesk.ViewModels.TicketDetailsViewModel
+
+@{
+    ViewData["Title"] = "Ticket #" + Model.Ticket.Id;
+}
+
+@if (TempData["Success"] != null)
+{
+    <div class="alert alert-success alert-dismissible fade show mb-4">
+        <i class="bi bi-check-circle me-2"></i>@TempData["Success"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+
+@if (TempData["Error"] != null)
+{
+    <div class="alert alert-danger alert-dismissible fade show mb-4">
+        <i class="bi bi-exclamation-circle me-2"></i>@TempData["Error"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+
+<div class="row g-4">
+
+    <!-- Left Column: Ticket Info -->
+    <div class="col-lg-8">
+        <div class="card mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span><i class="bi bi-ticket-perforated me-2"></i>Ticket #@Model.Ticket.Id</span>
+                <span class="badge rounded-pill badge-@Model.Ticket.Status.ToString().ToLower()">
+                    @Model.Ticket.Status
+                </span>
+            </div>
+            <div class="card-body p-4">
+                <h5 style="color: #e6edf3; margin-bottom: 16px;">@Model.Ticket.Title</h5>
+                <p style="color: #8b949e; line-height: 1.7;">@Model.Ticket.Description</p>
+            </div>
+        </div>
+
+        <!-- Comments Section -->
+        <div class="card">
+            <div class="card-header">
+                <i class="bi bi-chat-left-text me-2"></i>Comments
+                (@Model.Ticket.Comments.Count)
+            </div>
+            <div class="card-body p-4">
+                @if (Model.Ticket.Comments.Any())
+                {
+                    @foreach (var comment in Model.Ticket.Comments.OrderBy(c => c.CreatedAt))
+                    {
+                        <div style="background:#21262d; border:1px solid #30363d; border-radius:10px; padding:16px; margin-bottom:12px;">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <span style="color:#e94560; font-weight:600; font-size:13px;">
+                                    <i class="bi bi-person-circle me-1"></i>
+                                    @comment.User?.FirstName @comment.User?.LastName
+                                </span>
+                                <span style="color:#8b949e; font-size:12px;">
+                                    @comment.CreatedAt.ToString("dd MMM yyyy HH:mm")
+                                </span>
+                            </div>
+                            <p style="color:#e6edf3; margin:0; font-size:14px;">@comment.Content</p>
+                        </div>
+                    }
+                }
+                else
+                {
+                    <p style="color:#8b949e; font-size:14px;">No comments yet.</p>
+                }
+
+                <!-- Add Comment Form - visible to everyone -->
+                @if (Model.Ticket.Status != TechDesk.Models.TicketStatus.Closed)
+                {
+                    <form asp-action="AddComment" method="post" class="mt-3">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="ticketId" value="@Model.Ticket.Id" />
+                        <div class="mb-2">
+                            <textarea name="content" class="form-control" rows="3"
+                                  placeholder="Add a comment..."></textarea>
+                        </div>
+                        <button type="submit" class="btn btn-primary btn-sm">
+                            <i class="bi bi-send me-1"></i> Post Comment
+                        </button>
+                    </form>
+                }
+            </div>
+        </div>
+    </div>
+
+    <!-- Right Column: Details & Actions -->
+    <div class="col-lg-4">
+        <div class="card mb-3">
+            <div class="card-header">
+                <i class="bi bi-info-circle me-2"></i>Details
+            </div>
+            <div class="card-body p-3">
+                <div style="margin-bottom:16px;">
+                    <div style="color:#8b949e; font-size:11px; text-transform:uppercase; letter-spacing:1px; margin-bottom:4px;">Status</div>
+                    <span class="badge rounded-pill badge-@Model.Ticket.Status.ToString().ToLower()">
+                        @Model.Ticket.Status
+                    </span>
+                </div>
+                <div style="margin-bottom:16px;">
+                    <div style="color:#8b949e; font-size:11px; text-transform:uppercase; letter-spacing:1px; margin-bottom:4px;">Priority</div>
+                    <span class="badge rounded-pill badge-@Model.Ticket.Priority.ToString().ToLower()">
+                        @Model.Ticket.Priority
+                    </span>
+                </div>
+                <div style="margin-bottom:16px;">
+                    <div style="color:#8b949e; font-size:11px; text-transform:uppercase; letter-spacing:1px; margin-bottom:4px;">Category</div>
+                    <span style="color:#e6edf3; font-size:14px;">@Model.Ticket.Category?.Name</span>
+                </div>
+                <div style="margin-bottom:16px;">
+                    <div style="color:#8b949e; font-size:11px; text-transform:uppercase; letter-spacing:1px; margin-bottom:4px;">Submitted By</div>
+                    <span style="color:#e6edf3; font-size:14px;">
+                        @Model.Ticket.User?.FirstName @Model.Ticket.User?.LastName
+                    </span>
+                </div>
+                <div style="margin-bottom:16px;">
+                    <div style="color:#8b949e; font-size:11px; text-transform:uppercase; letter-spacing:1px; margin-bottom:4px;">Created</div>
+                    <span style="color:#e6edf3; font-size:14px;">
+                        @Model.Ticket.CreatedAt.ToString("dd MMM yyyy HH:mm")
+                    </span>
+                </div>
+                @if (Model.Ticket.UpdatedAt.HasValue)
+                {
+                    <div>
+                        <div style="color:#8b949e; font-size:11px; text-transform:uppercase; letter-spacing:1px; margin-bottom:4px;">Last Updated</div>
+                        <span style="color:#e6edf3; font-size:14px;">
+                            @Model.Ticket.UpdatedAt.Value.ToString("dd MMM yyyy HH:mm")
+                        </span>
+                    </div>
+                }
+            </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="card">
+            <div class="card-header">
+                <i class="bi bi-lightning me-2"></i>Actions
+            </div>
+            <div class="card-body p-3 d-flex flex-column gap-2">
+
+                @if (Model.Ticket.Status != TechDesk.Models.TicketStatus.Closed)
+                {
+                    @if (Model.IsOwner || Model.IsAdmin)
+                    {
+                        <form asp-action="Close" method="post">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="id" value="@Model.Ticket.Id" />
+                            <button type="submit" class="btn btn-sm w-100"
+                                    style="background:rgba(248,81,73,0.1); color:#f85149; border:1px solid rgba(248,81,73,0.3); border-radius:8px; padding:10px;">
+                                <i class="bi bi-x-circle me-2"></i>Close Ticket
+                            </button>
+                        </form>
+                    }
+                }
+                else
+                {
+                    <p style="color:#8b949e; font-size:13px; text-align:center; margin:0;">
+                        This ticket is closed.
+                    </p>
+                }
+
+                <a href="/Ticket/MyTickets"
+                   class="btn btn-sm text-center"
+                   style="background:#21262d; color:#e6edf3; border:1px solid #30363d; border-radius:8px; padding:10px;">
+                    <i class="bi bi-arrow-left me-2"></i>Back to My Tickets
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
