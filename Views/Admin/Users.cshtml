@@ -1,0 +1,117 @@
+﻿@model List<TechDesk.ViewModels.AdminUserViewModel>
+
+@{
+    ViewData["Title"] = "Manage Users";
+}
+
+@if (TempData["Success"] != null)
+{
+    <div class="alert alert-success alert-dismissible fade show mb-4">
+        <i class="bi bi-check-circle me-2"></i>@TempData["Success"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+
+@if (TempData["Error"] != null)
+{
+    <div class="alert alert-danger alert-dismissible fade show mb-4">
+        <i class="bi bi-exclamation-circle me-2"></i>@TempData["Error"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <span><i class="bi bi-people me-2"></i>All Users (@Model.Count)</span>
+    </div>
+    <div class="table-responsive">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Email</th>
+                    <th>Department</th>
+                    <th>Role</th>
+                    <th>Tickets</th>
+                    <th>Last Ticket</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var user in Model)
+                {
+                    <tr>
+                        <td>
+                            <div class="d-flex align-items-center gap-2">
+                                <div style="width:32px; height:32px; background:linear-gradient(135deg,#e94560,#0f3460); border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:700; color:white; flex-shrink:0;">
+                                    @user.FirstName.Substring(0, 1).ToUpper()
+                                </div>
+                                <div>
+                                    <div style="font-size:14px; color:#e6edf3;">
+                                        @user.FirstName @user.LastName
+                                    </div>
+                                </div>
+                            </div>
+                        </td>
+                        <td style="color:#8b949e; font-size:13px;">@user.Email</td>
+                        <td style="color:#8b949e; font-size:13px;">@user.Department</td>
+                        <td>
+                            @if (user.IsAdmin)
+                            {
+                                <span style="background:rgba(233,69,96,0.15); color:#e94560; padding:3px 10px; border-radius:20px; font-size:11px; font-weight:600;">
+                                    ADMIN
+                                </span>
+                            }
+                            else
+                            {
+                                <span style="background:rgba(139,148,158,0.15); color:#8b949e; padding:3px 10px; border-radius:20px; font-size:11px; font-weight:600;">
+                                    USER
+                                </span>
+                            }
+                    </td>
+                    <td style="color:#e6edf3;">@user.TicketCount</td>
+                    <td style="color:#8b949e; font-size:13px;">
+                        @(user.LastTicketDate.HasValue
+                                                ? user.LastTicketDate.Value.ToString("dd MMM yyyy")
+                                                : "No tickets")
+                    </td>
+                    <td>
+                        <div class="d-flex gap-2">
+                            <!-- Toggle Admin Role -->
+                            <form asp-action="ToggleAdmin" method="post">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="userId" value="@user.Id" />
+                                <button type="submit" class="btn btn-sm"
+                                        style="background:rgba(88,166,255,0.1); color:#58a6ff; border:1px solid rgba(88,166,255,0.3); border-radius:6px; padding:4px 10px; font-size:12px;"
+                                        title="@(user.IsAdmin ? "Demote to User" : "Promote to Admin")">
+                                    @if (user.IsAdmin)
+                                        {
+                                            <i class="bi bi-arrow-down-circle me-1"></i>
+                                            <span>Demote</span>
+                                        }
+                                        else
+                                        {
+                                            <i class="bi bi-arrow-up-circle me-1"></i>
+                                            <span>Promote</span>
+                                        }
+                                    </button>
+                                </form>
+
+                                <!-- Delete User -->
+                                <form asp-action="DeleteUser" method="post"
+                                      onsubmit="return confirm('Are you sure you want to delete @user.FirstName @user.LastName? This will also delete all their tickets.')">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="userId" value="@user.Id" />
+                                    <button type="submit" class="btn btn-sm"
+                                            style="background:rgba(248,81,73,0.1); color:#f85149; border:1px solid rgba(248,81,73,0.3); border-radius:6px; padding:4px 10px; font-size:12px;">
+                                        <i class="bi bi-trash me-1"></i>Delete
+                                    </button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
