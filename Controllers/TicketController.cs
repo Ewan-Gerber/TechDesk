@@ -170,19 +170,27 @@ namespace TechDesk.Controllers
             var ticket = await _context.Tickets.FindAsync(id);
 
             if (ticket == null)
-                return NotFound();
+            {
+                TempData["Error"] = "Ticket not found. ID: " + id;
+                return RedirectToAction("MyTickets");
+            }
 
-            // Only the ticket owner can mark as completed
             if (ticket.UserId != currentUser!.Id && !User.IsInRole("Admin"))
-                return Forbid();
+            {
+                TempData["Error"] = "Forbidden. Ticket owner: " + ticket.UserId + " Current user: " + currentUser.Id;
+                return RedirectToAction("MyTickets");
+            }
 
-            // Can only complete a ticket that is Open or in Progress
-            if (ticket.Status != TicketStatus.Open && ticket.Status != TicketStatus.InProgress)
+            if (ticket.Status == TicketStatus.Open || ticket.Status == TicketStatus.InProgress)
             {
                 ticket.Status = TicketStatus.Completed;
                 ticket.UpdatedAt = DateTime.Now;
                 await _context.SaveChangesAsync();
                 TempData["Success"] = "Ticket marked as completed!";
+            }
+            else
+            {
+                TempData["Error"] = "Status was: " + ticket.Status.ToString();
             }
 
             return RedirectToAction("Details", new { id });
